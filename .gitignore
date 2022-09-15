@@ -36,3 +36,4 @@ cpu_tests/benchmarks/bin/arm/
 .idea/
 .vscode/
 cmake-build-debug/
+gem5/

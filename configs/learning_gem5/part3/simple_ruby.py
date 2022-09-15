@@ -89,7 +89,8 @@ thispath = os.path.dirname(os.path.realpath(__file__))
 binary = os.path.join(thispath, '../../../',
                       'tests/test-progs/hello/bin/', isa, 'linux/hello')
 # binary = os.path.join(thispath, '../../../',
-#                       'tests/test-progs/hello/src/hello64-static')
+#                       'tests/test-progs/hello/src/rv_hello')
+# binary = os.path.join('/home/yanyue/workspace/ygjk_test/firmware.elf')
 
 # Create a process for a simple "multi-threaded" application
 process = Process()
