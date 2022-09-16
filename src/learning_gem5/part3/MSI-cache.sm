@@ -616,6 +616,13 @@ machine(MachineType:L1Cache, "MSI cache")
     }
 
     // Responses to CPU requests (e.g., hits and store acks)
+    // B把pc和Data发送给cpu的ICache port, 暂时只发pc
+    action(startTrans, "St", desc="B cache ask cpu to trans this pc"){
+        peek(response_in, ResponseMsg){
+           sequencer.transCallback(address, false);    // data 无用
+        }
+
+    }
 
     action(loadHit, "Lh", desc="Load hit") {
         assert(is_valid(cache_entry));
@@ -788,10 +795,20 @@ machine(MachineType:L1Cache, "MSI cache")
     }
 
     // 当B收到目录的数据，转发给A, 进入S状态
+//    transition({I, S}, DataDirNoAcks, S){
+////        allocateCacheBlock;
+////        writeDataToCache;     // B暂时不把数据写入Cache,因为没有cpu请求，无法驱逐满的cache 行出去
+//        sendCacheDataToReqA;
+////        externalLoadHit;
+//        popResponseQueue;
+//    }
+
+    // 当B收到目录的数据，发送给cpu, 进入IS_1
     transition({I, S}, DataDirNoAcks, S){
 //        allocateCacheBlock;
 //        writeDataToCache;     // B暂时不把数据写入Cache,因为没有cpu请求，无法驱逐满的cache 行出去
-        sendCacheDataToReqA;
+//        sendCacheDataToReqA;
+        startTrans;
 //        externalLoadHit;
         popResponseQueue;
     }

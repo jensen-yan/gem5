@@ -545,6 +545,29 @@ Sequencer::writeCallback(Addr address, DataBlock& data,
 }
 
 void
+Sequencer::transCallback(Addr address,
+                            bool externalHit, const MachineType mach,
+                            Cycles initialRequestTime,
+                            Cycles forwardRequestTime,
+                            Cycles firstResponseTime)
+{
+    DPRINTF(RubySequencer, "forward pc to ICache Port");
+    assert(!address);
+    // 这里没有request, 用之前存过的ICachePort
+    assert(m_RequestTable.find(address) != m_RequestTable.end());
+    auto &seq_req_list = m_RequestTable[address];
+    SequencerRequest &seq_req = seq_req_list.front();       // 先用一个假的seq_req
+    PacketPtr pkt = seq_req.pkt;        // 假的pkt
+    _ICachePort->hitCallback(pkt);      // 发送给ICachePort
+
+//    port->hitCallback(pkt);
+
+
+//    schedTimingResp(pkt, curTick());    // 直接发送可以吗？
+
+}
+
+void
 Sequencer::readCallback(Addr address, DataBlock& data,
                         bool externalHit, const MachineType mach,
                         Cycles initialRequestTime,
@@ -689,6 +712,11 @@ Sequencer::hitCallback(SequencerRequest* srequest, DataBlock& data,
         delete pkt;
         rs->m_cache_recorder->enqueueNextFlushRequest();
     } else {
+        RubyPort::SenderState *senderState =
+                safe_cast<RubyPort::SenderState *>(pkt->popSenderState());
+        MemResponsePort *port = senderState->port;
+        _ICachePort = port;     // 把要发送的Port提前存下来
+
         ruby_hit_callback(pkt);
         testDrainComplete();
     }

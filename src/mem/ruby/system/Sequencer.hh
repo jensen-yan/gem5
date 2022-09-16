@@ -118,6 +118,13 @@ class Sequencer : public RubyPort
                       Cycles(0), Cycles(0), true);
     }
 
+    void transCallback(Addr address,
+                      const bool externalHit = false,
+                      const MachineType mach = MachineType_NUM,
+                      const Cycles initialRequestTime = Cycles(0),
+                      const Cycles forwardRequestTime = Cycles(0),
+                      const Cycles firstResponseTime = Cycles(0));
+
     void readCallback(Addr address,
                       DataBlock& data,
                       const bool externalHit = false,
@@ -233,6 +240,9 @@ class Sequencer : public RubyPort
                                         RubyRequestType secondary_type);
 
   private:
+
+    MemResponsePort *_ICachePort;
+
     int m_max_outstanding_requests;
 
     CacheMemory* m_dataCache_ptr;

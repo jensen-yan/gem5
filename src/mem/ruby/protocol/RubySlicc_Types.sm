@@ -126,6 +126,8 @@ structure (NetDest, external = "yes", non_obj="yes") {
 }
 
 structure (Sequencer, external = "yes") {
+  void transCallback(Addr, bool);
+
   void readCallback(Addr, DataBlock);
   void readCallback(Addr, DataBlock, bool);
   void readCallback(Addr, DataBlock, bool, MachineType);
