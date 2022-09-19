@@ -223,17 +223,19 @@ SimpleCache::handleResponse(PacketPtr pkt)
     DPRINTF(SimpleCache, "Got response for addr %#x\n", pkt->getAddr());
 
     // For now assume that inserts are off of the critical path and don't count
-    // for any added latency.
+    // for any added latency. 肯定是miss产生的包，先存入cache
     insert(pkt);
 
     stats.missLatency.sample(curTick() - missTime);
 
     // If we had to upgrade the request packet to a full cache line, now we
     // can use that packet to construct the response.
+    // 如果有新旧包，把新包拷贝给旧包，删除新包
     if (originalPacket != nullptr) {
         DPRINTF(SimpleCache, "Copying data from new packet to old\n");
         // We had to upgrade a previous packet. We can functionally deal with
         // the cache access now. It better be a hit.
+        // 如果是写，会accessFuncional写入cache，读也会读入旧包
         [[maybe_unused]] bool hit = accessFunctional(originalPacket);
         panic_if(!hit, "Should always hit after inserting");
         originalPacket->makeResponse();
@@ -301,6 +303,7 @@ SimpleCache::accessTiming(PacketPtr pkt)
         // Forward to the memory side.
         // We can't directly forward the packet unless it is exactly the size
         // of the cache line, and aligned. Check for that here.
+        // 转发给mem, 如果pkt大小刚好和cache块大小相同，且对齐，可以直接转发，否则需要创建一个新的pkt
         Addr addr = pkt->getAddr();
         Addr block_addr = pkt->getBlockAddr(blockSize);
         unsigned size = pkt->getSize();
@@ -314,7 +317,7 @@ SimpleCache::accessTiming(PacketPtr pkt)
                      "Cannot handle accesses that span multiple cache lines");
             // Unaligned access to one cache block
             assert(pkt->needsResponse());
-            MemCmd cmd;
+            MemCmd cmd;     // 新建一个readreq 的cmd
             if (pkt->isWrite() || pkt->isRead()) {
                 // Read the data from memory to write into the block.
                 // We'll write the data in the cache (i.e., a writeback cache)
@@ -324,13 +327,14 @@ SimpleCache::accessTiming(PacketPtr pkt)
             }
 
             // Create a new packet that is blockSize
+            // 新建一个blockSize的pkt, allocate申请
             PacketPtr new_pkt = new Packet(pkt->req, cmd, blockSize);
             new_pkt->allocate();
 
             // Should now be block aligned
             assert(new_pkt->getAddr() == new_pkt->getBlockAddr(blockSize));
 
-            // Save the old packet
+            // Save the old packet，现在有两个包，存之前的那个在originalPacket中
             originalPacket = pkt;
 
             DPRINTF(SimpleCache, "forwarding packet\n");
@@ -369,7 +373,7 @@ SimpleCache::insert(PacketPtr pkt)
     // The pkt should be a response
     assert(pkt->isResponse());
 
-    if (cacheStore.size() >= capacity) {
+    if (cacheStore.size() >= capacity) {    // cache是否满了，需要随机驱逐一块写入mem
         // Select random thing to evict. This is a little convoluted since we
         // are using a std::unordered_map. See http://bit.ly/2hrnLP2
         int bucket, bucket_size;
@@ -382,7 +386,7 @@ SimpleCache::insert(PacketPtr pkt)
         DPRINTF(SimpleCache, "Removing addr %#x\n", block->first);
 
         // Write back the data.
-        // Create a new request-packet pair
+        // Create a new request-packet pair，新建一个dirty包写入mem, make_shared新建一个req
         RequestPtr req = std::make_shared<Request>(
             block->first, blockSize, 0, 0);
 
@@ -390,17 +394,17 @@ SimpleCache::insert(PacketPtr pkt)
         new_pkt->dataDynamic(block->second); // This will be deleted later
 
         DPRINTF(SimpleCache, "Writing packet back %s\n", pkt->print());
-        // Send the write to memory
+        // Send the write to memory, 何时删除pkt,引用为0就自动删除了！
         memPort.sendPacket(new_pkt);
 
         // Delete this entry
         cacheStore.erase(block->first);
     }
-
+    // 有空位置了，插入到cache中，添加map pair, 写入data
     DPRINTF(SimpleCache, "Inserting %s\n", pkt->print());
     DDUMP(SimpleCache, pkt->getConstPtr<uint8_t>(), blockSize);
 
-    // Allocate space for the cache block data
+    // Allocate space for the cache block data， 真正申请一块数据！
     uint8_t *data = new uint8_t[blockSize];
 
     // Insert the data and address into the cache store
