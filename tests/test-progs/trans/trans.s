@@ -1,6 +1,6 @@
 .text
-.global _start
-_start:
+@ .global _start
+@ _start:
 
     mov r8, #0x74
     movt r8, #1         // add inst addr 0x10074

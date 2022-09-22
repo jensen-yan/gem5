@@ -1,8 +1,9 @@
 
 target = trans
 
-all:
-	arm-linux-gnueabihf-as $(target).s -g -o $(target).o
-	arm-linux-gnueabihf-ld $(target).o -o $(target)
-	file $(target)  	# 查看有debug信息
-	qemu-arm-static -g 8880 $(target)    # 远程debug：8889
+compile: 
+	arm-linux-gnueabihf-as hello_arm.s -g -o hello_arm.o
+	arm-linux-gnueabihf-as trans.s -g -o trans.o
+
+link:
+	arm-linux-gnueabihf-ld hello_arm.o trans.o -T trans.ld  
