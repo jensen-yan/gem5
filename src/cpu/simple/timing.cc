@@ -726,17 +726,17 @@ TimingSimpleCPU::sendFetch(const Fault &fault, const RequestPtr &req,
         DPRINTF(SimpleCPU, "Sending fetch for addr %#x(pa: %#x)\n",
                 req->getVaddr(), req->getPaddr());
         ifetch_pkt = new Packet(req, MemCmd::ReadReq);
-        ifetch_pkt->dataStatic(decoder->moreBytesPtr());
+        ifetch_pkt->dataStatic(decoder->moreBytesPtr());    // 设置取指地址
         DPRINTF(SimpleCPU, " -- pkt addr: %#x\n", ifetch_pkt->getAddr());
 
-        if (!icachePort.sendTimingReq(ifetch_pkt)) {
+        if (!icachePort.sendTimingReq(ifetch_pkt)) {    // 发送请求
             // Need to wait for retry
             _status = IcacheRetry;
         } else {
             // Need to wait for cache to respond
-            _status = IcacheWaitResponse;
+            _status = IcacheWaitResponse;   // cpu进入等待状态
             // ownership of packet transferred to memory system
-            ifetch_pkt = NULL;
+            ifetch_pkt = NULL;  // 立刻删除pkt
         }
     } else {
         DPRINTF(SimpleCPU, "Translation of addr %#x faulted\n", req->getVaddr());
@@ -954,6 +954,7 @@ TimingSimpleCPU::completeDataAccess(PacketPtr pkt)
     panic_if(pkt->isError(), "Data access (%s) failed: %s",
             pkt->getAddrRange().to_string(), pkt->print());
     assert(_status == DcacheWaitResponse || _status == DTBWaitResponse ||
+            pkt->isInvalidate() ||
            pkt->req->getFlags().isSet(Request::NO_ACCESS));
 
     pkt->req->setAccessLatency();
@@ -1049,6 +1050,12 @@ TimingSimpleCPU::completeDataAccess(PacketPtr pkt)
         } else {
             panic("HTM - unhandled rc %s", htmFailureToStr(htm_rc));
         }
+    } else if (pkt->isInvalidate()){
+        // need to change packet req
+        Addr vaddr = 0x140;
+        fault = std::make_shared<TransHandlerFault>(vaddr);
+        advanceInst(fault);
+        return;
     } else {
         fault = curStaticInst->completeAcc(pkt, t_info,
                                      traceData);
@@ -1096,11 +1103,17 @@ TimingSimpleCPU::DcachePort::recvTimingSnoopReq(PacketPtr pkt)
         }
     }
 
+    if (!tickEvent.scheduled()){
+        tickEvent.schedule(pkt, cpu->clockEdge());  // into completeDataAccess
+        return;
+    }
+
     // Making it uniform across all CPUs:
     // The CPUs need to be woken up only on an invalidation packet
     // (when using caches) or on an incoming write packet (when not
     // using caches) It is not necessary to wake up the processor on
     // all incoming packets
+    // cpu只有收到invalid包 or 写入包才需要被唤醒
     if (pkt->isInvalidate() || pkt->isWrite()) {
         for (auto &t_info : cpu->threadInfo) {
             t_info->thread->getIsaPtr()->handleLockedSnoop(pkt,

@@ -93,14 +93,21 @@ binary = os.path.join(thispath, '../../../',
 # binary = os.path.join('/home/yanyue/workspace/ygjk_test/firmware.elf')
 
 # Create a process for a simple "multi-threaded" application
-process = Process()
+process = Process(pid=101)
 # Set the command
 # cmd is a list which begins with the executable (like argv)
 process.cmd = [binary]
+process2 = Process(pid=102)
+process2.cmd = [binary]
 # Set the cpu to use the process as its workload and create thread contexts
-for cpu in system.cpu:
-    cpu.workload = process
-    cpu.createThreads()
+system.cpu[0].workload = process
+system.cpu[0].createThreads()
+system.cpu[1].workload = process2
+system.cpu[1].createThreads()
+# for cpu in system.cpu:
+#     print(cpu)
+#     cpu.workload = process
+#     cpu.createThreads()
 
 system.workload = SEWorkload.init_compatible(binary)
 

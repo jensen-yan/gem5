@@ -132,4 +132,17 @@ void GenericHtmFailureFault::invoke(ThreadContext *tc,
     tc->htmAbortTransaction(htmUid, cause);
 }
 
+
+void
+TransHandlerFault::invoke(ThreadContext *tc, const StaticInstPtr &inst) {
+    // reset decoder
+    InstDecoder* decoder = tc->getDecoderPtr();
+    decoder->reset();
+
+    // jump to vaddr
+    tc->pcState(vaddr);
+
+}
+
+
 } // namespace gem5

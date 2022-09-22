@@ -619,7 +619,8 @@ machine(MachineType:L1Cache, "MSI cache")
     // B把pc和Data发送给cpu的ICache port, 暂时只发pc
     action(startTrans, "St", desc="B cache ask cpu to trans this pc"){
         peek(response_in, ResponseMsg){
-           sequencer.transCallback(address, false);    // data 无用
+//           sequencer.transCallback(address, false);    // data 无用
+           sequencer.evictionCallback(address);     // reuse evictionCallback!
         }
 
     }
@@ -858,7 +859,7 @@ machine(MachineType:L1Cache, "MSI cache")
         sendPutS;
     }
 
-    transition(S, Inv, I) {
+    transition(S, Inv, I) { // B收到目录发来的inv，给A发inv-ack, 告诉cpuB eviction
         sendInvAcktoReq;
         forwardEviction;
         deallocateCacheBlock;

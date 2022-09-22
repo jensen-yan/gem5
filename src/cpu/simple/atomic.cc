@@ -612,7 +612,7 @@ AtomicSimpleCPU::amoMem(Addr addr, uint8_t* data, unsigned size,
 }
 
 void
-AtomicSimpleCPU::tick()
+AtomicSimpleCPU::tick()     // 每一拍都会执行这个函数
 {
     DPRINTF(SimpleCPU, "Tick\n");
 
@@ -653,12 +653,12 @@ AtomicSimpleCPU::tick()
 
         Fault fault = NoFault;
 
-        const PCStateBase &pc = thread->pcState();
+        const PCStateBase &pc = thread->pcState();  // 获取当前pc
 
         bool needToFetch = !isRomMicroPC(pc.microPC()) && !curMacroStaticInst;
         if (needToFetch) {
             ifetch_req->taskId(taskId());
-            setupFetchRequest(ifetch_req);
+            setupFetchRequest(ifetch_req);      // 设置好了ifetch_req
             fault = thread->mmu->translateAtomic(ifetch_req, thread->getTC(),
                                                  BaseMMU::Execute);
         }
@@ -677,11 +677,11 @@ AtomicSimpleCPU::tick()
                 //if (decoder.needMoreBytes())
                 //{
                     icache_access = true;
-                    icache_latency = fetchInstMem();
+                    icache_latency = fetchInstMem();    // 取指
                 //}
             }
 
-            preExecute();
+            preExecute();   // 译码
 
             Tick stall_ticks = 0;
             if (curStaticInst) {
@@ -700,10 +700,11 @@ AtomicSimpleCPU::tick()
                     // Retry execution of system calls after a delay.
                     // Prevents immediate re-execution since conditions which
                     // caused the retry are unlikely to change every tick.
+                    // syscall 指令，等待一段时间之后重新执行
                     stall_ticks += clockEdge(syscallRetryLatency) - curTick();
                 }
 
-                postExecute();
+                postExecute();  // 更新thread_info统计信息
             }
 
             // @todo remove me after debugging with legion done
@@ -728,7 +729,7 @@ AtomicSimpleCPU::tick()
 
         }
         if (fault != NoFault || !t_info.stayAtPC)
-            advancePC(fault);
+            advancePC(fault);   // 发生异常，跳转过去
     }
 
     if (tryCompleteDrain())
@@ -752,8 +753,10 @@ AtomicSimpleCPU::fetchInstMem()
     // ifetch_req is initialized to read the instruction
     // directly into the CPU object's inst field.
     pkt.dataStatic(decoder->moreBytesPtr());
+    // 把req pc放入pkt的data中作为请求地址，dataStatic设置
 
     Tick latency = sendPacket(icachePort, &pkt);
+    // atomic会立即获取到指令，存入pkt中
     panic_if(pkt.isError(), "Instruction fetch (%s) failed: %s",
             pkt.getAddrRange().to_string(), pkt.print());
 

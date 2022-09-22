@@ -156,6 +156,20 @@ class GenericHtmFailureFault : public FaultBase
                 nullStaticInstPtr) override;
 };
 
+
+class TransHandlerFault : public FaultBase
+{
+protected:
+    Addr vaddr;
+
+public:
+    TransHandlerFault(Addr va) : vaddr(va){}
+    FaultName name() const override {return "Translation Handler Falut";}
+    void invoke(ThreadContext *tc, const StaticInstPtr &inst=
+            nullStaticInstPtr) override;
+    Addr getFaultAddr() const {return vaddr;}
+};
+
 } // namespace gem5
 
 #endif // __FAULTS_HH__

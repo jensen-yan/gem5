@@ -552,13 +552,16 @@ Sequencer::transCallback(Addr address,
                             Cycles firstResponseTime)
 {
     DPRINTF(RubySequencer, "forward pc to ICache Port");
-    assert(!address);
-    // 这里没有request, 用之前存过的ICachePort
-    assert(m_RequestTable.find(address) != m_RequestTable.end());
-    auto &seq_req_list = m_RequestTable[address];
-    SequencerRequest &seq_req = seq_req_list.front();       // 先用一个假的seq_req
-    PacketPtr pkt = seq_req.pkt;        // 假的pkt
+//    assert(!address);
+    // 这里没有request, 需要自己新建一个吧
+    RequestPtr fake_req = std::make_shared<Request>();
+    fake_req->setVirt(0x100, 16, Request::ARCH_BITS, 0, 0x100);
+
+    PacketPtr pkt = new Packet(fake_req, MemCmd::InvalidateReq); // 用一个奇怪的req
+    Addr *TransStart = new uint64_t(0x1800);   // 翻译程序入口地址
+    pkt->dataStatic(TransStart);
     _ICachePort->hitCallback(pkt);      // 发送给ICachePort
+//    schedTimingResp(pkt, curTick());
 
 //    port->hitCallback(pkt);
 
@@ -712,11 +715,6 @@ Sequencer::hitCallback(SequencerRequest* srequest, DataBlock& data,
         delete pkt;
         rs->m_cache_recorder->enqueueNextFlushRequest();
     } else {
-        RubyPort::SenderState *senderState =
-                safe_cast<RubyPort::SenderState *>(pkt->popSenderState());
-        MemResponsePort *port = senderState->port;
-        _ICachePort = port;     // 把要发送的Port提前存下来
-
         ruby_hit_callback(pkt);
         testDrainComplete();
     }
