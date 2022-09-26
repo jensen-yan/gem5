@@ -440,8 +440,8 @@ machine(MachineType:L1Cache, "MSI cache")
                                 tbe);
                     } else if(in_msg.Type == RubyRequestType:IFETCH){   // 单独对icache处理
                         DPRINTF(RubySlicc, "sender addr %d\n", in_msg.PhysicalAddress);
-                        // 先通过addr来区分，0x100 = 256
-                        if (in_msg.PhysicalAddress < createAddr(256)) { // A 转发取指，B正常取指
+                        // 先通过addr来区分，0x100 = 256, 暂时只翻译0x0地址这一条指令
+                        if (in_msg.PhysicalAddress == createAddr(0)) { // A 转发取指，B正常取指
                             trigger(Event:TransLoad, in_msg.LineAddress, cache_entry,
                                                             tbe);
                         } else {
@@ -567,20 +567,20 @@ machine(MachineType:L1Cache, "MSI cache")
         }
     }
 
-    // B直接把得到消息的数据转发给A
+    // B把cache数据转发给A
     action(sendCacheDataToReqA, "cdRA", desc="Send cache data to cache A") {
 //        assert(is_valid(cache_entry));
-        peek(response_in, ResponseMsg) {
+//        peek(response_in, ResponseMsg) {    // 不用in_msg了，也没有输入的请求
             enqueue(response_out, ResponseMsg, 1) {
                 out_msg.addr := address;
                 out_msg.Type := CoherenceResponseType:Data;
                 out_msg.Destination.add(createMachineID(MachineType:L1Cache, intToID(0)));
-//                out_msg.DataBlk := cache_entry.DataBlk;
-                out_msg.DataBlk := in_msg.DataBlk;
+                out_msg.DataBlk := cache_entry.DataBlk;
+//                out_msg.DataBlk := in_msg.DataBlk;
                 out_msg.MessageSize := MessageSizeType:Data;
                 out_msg.Sender := machineID;
             }
-        }
+//        }
     }
 
 
@@ -658,7 +658,7 @@ machine(MachineType:L1Cache, "MSI cache")
 
     action(storeHit, "Sh", desc="Store hit") {
         assert(is_valid(cache_entry));
-        cacheMemory.setMRU(cache_entry);
+        cacheMemory.setMRU(cache_entry);    // 具体在哪里真正把数据存入cache的呢？奇怪
         // The same as the read callback above.
         sequencer.writeCallback(address, cache_entry.DataBlk, false);
     }
@@ -816,12 +816,24 @@ machine(MachineType:L1Cache, "MSI cache")
 
     // 当B收到目录的数据，发送给cpu, 进入IS_TDB
     transition({I, S}, DataDirNoAcks, IS_TDB){
-//        allocateCacheBlock;
-//        writeDataToCache;     // B暂时不把数据写入Cache,因为没有cpu请求，无法驱逐满的cache 行出去
-//        sendCacheDataToReqA;
-        startTrans;
+        allocateCacheBlock;
+        writeDataToCache;     // B先把数据写入Cache,之后有cpu请求，能驱逐满的cache 行出去
+        startTrans;             // 给CPU发送翻译请求
 //        externalLoadHit;
         popResponseQueue;
+    }
+
+    // B 收到load，命中，状态保持不变
+    transition(IS_TDB, Load){
+        loadHit;
+        popMandatoryQueue;
+    }
+
+    // B 收到store，变成S，同时把cache行发送给A
+    transition(IS_TDB, Store, S){
+        storeHit;
+        sendCacheDataToReqA;
+        popMandatoryQueue;
     }
 
 

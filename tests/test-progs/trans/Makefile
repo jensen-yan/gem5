@@ -1,14 +1,20 @@
 
 target = trans
 
+CROSS = arm-linux-gnueabihf
+
 all: compile link objdump
 
 compile: 
-	arm-linux-gnueabihf-as hello_arm.s -g -o hello_arm.o
-	arm-linux-gnueabihf-as trans.s -g -o trans.o
+	$(CROSS)-as hello_arm.s -g -o hello_arm.o
+	$(CROSS)-as trans.s -g -o trans.o
 
 link:
-	arm-linux-gnueabihf-ld hello_arm.o trans.o -T trans.ld  
+	$(CROSS)-ld hello_arm.o trans.o -T trans.ld
 
 objdump:
-	arm-linux-gnueabihf-objdump -d a.out > out
+	$(CROSS)-objdump -d a.out > out
+
+run:
+	$(CROSS)-ld hello_arm.o -o hello_arm
+	qemu-arm-static hello_arm
