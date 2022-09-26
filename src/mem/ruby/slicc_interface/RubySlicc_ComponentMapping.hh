@@ -97,6 +97,12 @@ MachineTypeAndNodeIDToMachineID(MachineType type, NodeID node)
     return mach;
 }
 
+inline Addr
+createAddr(int addr)
+{
+    return (Addr)addr;
+}
+
 } // namespace ruby
 } // namespace gem5
 

@@ -1,6 +1,8 @@
 .text
 .global _start
 _start:
+    add r1, r0, #1     // r1 = 1, should be 2
+
     add r8, r0, #1      // r8 = 1
     add r8, r8, #48     // r8 = '1'
     ldr r9, =num

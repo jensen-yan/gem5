@@ -89,6 +89,8 @@ machine(MachineType:L1Cache, "MSI cache")
                     desc="Invalid, moving to S, waiting for data";
         IS_TD,  AccessPermission:Invalid,
                     desc="Invalid, moving to S, waiting for translation data";
+        IS_TDB, AccessPermission:Invalid,
+                    desc="Invalid, moving to S, B cache to cpu, waiting data";
         IM_AD,  AccessPermission:Invalid,
                     desc="Invalid, moving to M, waiting for acks and data";
         IM_A,   AccessPermission:Busy,
@@ -437,8 +439,16 @@ machine(MachineType:L1Cache, "MSI cache")
                         trigger(Event:Load, in_msg.LineAddress, cache_entry,
                                 tbe);
                     } else if(in_msg.Type == RubyRequestType:IFETCH){   // 单独对icache处理
-                        trigger(Event:TransLoad, in_msg.LineAddress, cache_entry,
+                        DPRINTF(RubySlicc, "sender addr %d\n", in_msg.PhysicalAddress);
+                        // 先通过addr来区分，0x100 = 256
+                        if (in_msg.PhysicalAddress < createAddr(256)) { // A 转发取指，B正常取指
+                            trigger(Event:TransLoad, in_msg.LineAddress, cache_entry,
+                                                            tbe);
+                        } else {
+                            trigger(Event:Load, in_msg.LineAddress, cache_entry,
                                 tbe);
+                        }
+
                     } else if (in_msg.Type == RubyRequestType:ST) {
                         trigger(Event:Store, in_msg.LineAddress, cache_entry,
                                 tbe);
@@ -804,8 +814,8 @@ machine(MachineType:L1Cache, "MSI cache")
 //        popResponseQueue;
 //    }
 
-    // 当B收到目录的数据，发送给cpu, 进入IS_1
-    transition({I, S}, DataDirNoAcks, S){
+    // 当B收到目录的数据，发送给cpu, 进入IS_TDB
+    transition({I, S}, DataDirNoAcks, IS_TDB){
 //        allocateCacheBlock;
 //        writeDataToCache;     // B暂时不把数据写入Cache,因为没有cpu请求，无法驱逐满的cache 行出去
 //        sendCacheDataToReqA;

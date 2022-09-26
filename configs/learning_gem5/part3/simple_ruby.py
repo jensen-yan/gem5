@@ -86,10 +86,10 @@ isa = str(m5.defines.buildEnv['TARGET_ISA']).lower()
 thispath = os.path.dirname(os.path.realpath(__file__))
 # binary = os.path.join(thispath, '../../../', 'tests/test-progs/threads/bin/',
 #                       isa, 'linux/threads')
-binary = os.path.join(thispath, '../../../',
-                      'tests/test-progs/hello/bin/', isa, 'linux/hello')
 # binary = os.path.join(thispath, '../../../',
-#                       'tests/test-progs/hello/src/rv_hello')
+#                       'tests/test-progs/hello/bin/', isa, 'linux/hello')
+binary = os.path.join(thispath, '../../../',
+                      'tests/test-progs/trans/a.out')
 # binary = os.path.join('/home/yanyue/workspace/ygjk_test/firmware.elf')
 
 # Create a process for a simple "multi-threaded" application
@@ -100,14 +100,13 @@ process.cmd = [binary]
 process2 = Process(pid=102)
 process2.cmd = [binary]
 # Set the cpu to use the process as its workload and create thread contexts
-system.cpu[0].workload = process
-system.cpu[0].createThreads()
-system.cpu[1].workload = process2
-system.cpu[1].createThreads()
-# for cpu in system.cpu:
-#     print(cpu)
-#     cpu.workload = process
-#     cpu.createThreads()
+# system.cpu[0].workload = process
+# system.cpu[0].createThreads()
+# system.cpu[1].workload = process2
+# system.cpu[1].createThreads()
+for cpu in system.cpu:
+    cpu.workload = process
+    cpu.createThreads()
 
 system.workload = SEWorkload.init_compatible(binary)
 

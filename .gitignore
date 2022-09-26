@@ -37,3 +37,6 @@ cpu_tests/benchmarks/bin/arm/
 .vscode/
 cmake-build-debug/
 gem5/
+tests/test-progs/trans/*.o
+tests/test-progs/trans/a.out
+tests/test-progs/trans/out

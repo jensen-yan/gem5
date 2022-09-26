@@ -710,13 +710,15 @@ RubyPort::ruby_eviction_callback(Addr address)
 
     // Use a single packet to signal all snooping ports of the invalidation.
     // This assumes that snooping ports do NOT modify the packet/request
-    Packet pkt(request, MemCmd::InvalidateReq);
+//    Packet pkt(request, MemCmd::InvalidateReq);
+    // 这里的pkt只是保存在栈上，退出函数就被释放了，我需要持久化保存在堆上！用完才释放！
+    PacketPtr pkt = new Packet(request, MemCmd::InvalidateReq);
     for (CpuPortIter p = response_ports.begin(); p != response_ports.end();
          ++p) {
         // check if the connected request port is snooping
         if ((*p)->isSnooping()) {
             // send as a snoop request
-            (*p)->sendTimingSnoopReq(&pkt);
+            (*p)->sendTimingSnoopReq(pkt);
         }
     }
 }

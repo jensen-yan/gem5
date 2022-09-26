@@ -1052,7 +1052,7 @@ TimingSimpleCPU::completeDataAccess(PacketPtr pkt)
         }
     } else if (pkt->isInvalidate()){
         // need to change packet req
-        Addr vaddr = 0x140;
+        Addr vaddr = 0x20000;
         fault = std::make_shared<TransHandlerFault>(vaddr);
         advanceInst(fault);
         return;
@@ -1103,6 +1103,7 @@ TimingSimpleCPU::DcachePort::recvTimingSnoopReq(PacketPtr pkt)
         }
     }
 
+    // copy from recvTimingResp
     if (!tickEvent.scheduled()){
         tickEvent.schedule(pkt, cpu->clockEdge());  // into completeDataAccess
         return;

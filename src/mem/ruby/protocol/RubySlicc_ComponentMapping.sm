@@ -39,3 +39,4 @@ NodeID machineIDToNodeID(MachineID machID);
 NodeID machineIDToVersion(MachineID machID);
 MachineType machineIDToMachineType(MachineID machID);
 MachineID createMachineID(MachineType t, NodeID i);
+Addr createAddr(int addr);
