@@ -545,32 +545,6 @@ Sequencer::writeCallback(Addr address, DataBlock& data,
 }
 
 void
-Sequencer::transCallback(Addr address,
-                            bool externalHit, const MachineType mach,
-                            Cycles initialRequestTime,
-                            Cycles forwardRequestTime,
-                            Cycles firstResponseTime)
-{
-    DPRINTF(RubySequencer, "forward pc to ICache Port");
-//    assert(!address);
-    // 这里没有request, 需要自己新建一个吧
-    RequestPtr fake_req = std::make_shared<Request>();
-    fake_req->setVirt(0x100, 16, Request::ARCH_BITS, 0, 0x100);
-
-    PacketPtr pkt = new Packet(fake_req, MemCmd::InvalidateReq); // 用一个奇怪的req
-    Addr *TransStart = new uint64_t(0x1800);   // 翻译程序入口地址
-    pkt->dataStatic(TransStart);
-    _ICachePort->hitCallback(pkt);      // 发送给ICachePort
-//    schedTimingResp(pkt, curTick());
-
-//    port->hitCallback(pkt);
-
-
-//    schedTimingResp(pkt, curTick());    // 直接发送可以吗？
-
-}
-
-void
 Sequencer::readCallback(Addr address, DataBlock& data,
                         bool externalHit, const MachineType mach,
                         Cycles initialRequestTime,
