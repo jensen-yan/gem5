@@ -440,8 +440,8 @@ machine(MachineType:L1Cache, "MSI cache")
                                 tbe);
                     } else if(in_msg.Type == RubyRequestType:IFETCH){   // 单独对icache处理
                         DPRINTF(RubySlicc, "sender addr %d\n", in_msg.PhysicalAddress);
-                        // 先通过addr来区分，0x100 = 256, 暂时只翻译0x0地址这一条指令
-                        if (in_msg.PhysicalAddress == createAddr(0)) { // A 转发取指，B正常取指
+                        // 先通过addr来区分，0x400 = 1024, 暂时只翻译0x400地址这一条指令
+                        if (in_msg.PhysicalAddress == createAddr(1024)) { // A 转发取指，B正常取指
                             trigger(Event:TransLoad, in_msg.LineAddress, cache_entry,
                                                             tbe);
                         } else {
@@ -658,9 +658,9 @@ machine(MachineType:L1Cache, "MSI cache")
 
     action(storeHit, "Sh", desc="Store hit") {
         assert(is_valid(cache_entry));
-        cacheMemory.setMRU(cache_entry);    // 具体在哪里真正把数据存入cache的呢？奇怪
+        cacheMemory.setMRU(cache_entry);    // 修改最近访问时间
         // The same as the read callback above.
-        sequencer.writeCallback(address, cache_entry.DataBlk, false);
+        sequencer.writeCallback(address, cache_entry.DataBlk, false);   // 这里把数据存入cache_entry!
     }
 
     action(externalStoreHit, "xSh", desc="External store hit (was a miss)") {

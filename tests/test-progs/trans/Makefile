@@ -3,7 +3,7 @@ target = trans
 
 CROSS = arm-linux-gnueabihf
 
-all: compile link objdump
+all: clean compile link objdump
 
 compile: 
 	$(CROSS)-as hello_arm.s -g -o hello_arm.o
@@ -18,3 +18,6 @@ objdump:
 run:
 	$(CROSS)-ld hello_arm.o -o hello_arm
 	qemu-arm-static hello_arm
+
+clean:
+	rm *.o a.out out
